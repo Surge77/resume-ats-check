@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "resume-ats-check"
+version = "0.1.0"
+description = "Check that a resume PDF reads correctly to an applicant tracking system."
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.10"
+dependencies = [
+    "pypdf==6.16.1",
+    "pdfminer.six==20260107",
+]
+
+[project.optional-dependencies]
+dev = ["pytest==9.0.3", "pytest-cov==6.0.0", "pyright==1.1.410"]
+
+[project.scripts]
+resume-ats-check = "resume_ats_check.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "--cov=resume_ats_check --cov-report=term-missing"
+
+[tool.pyright]
+include = ["src"]
