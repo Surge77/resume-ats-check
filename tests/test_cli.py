@@ -35,6 +35,14 @@ def test_verify_with_tex_reports_words_missing_from_the_page(tmp_path, monkeypat
     assert any("word coverage" in p for p in problems)
 
 
+def test_verify_with_tex_fails_words_glued_in_the_text_layer(tmp_path, monkeypatch):
+    """Renders as "React  2026"; extracts as one token, so "React" never matches."""
+    monkeypatch.setattr(pdftext, "extract_text", lambda _: "x" * 2000 + " React2026")
+    problems = verify.verify_pdf(_blank_pdf(tmp_path / "r.pdf"), r"\begin{document} React \hfill 2026")
+    assert any("glued" in p and "react2026" in p for p in problems)
+    assert any("pdfinterwordspaceon" in p for p in problems)
+
+
 def test_max_pages_none_disables_the_page_limit(tmp_path, monkeypatch):
     _readable(monkeypatch)
     pdf = _blank_pdf(tmp_path / "r.pdf", pages=3)

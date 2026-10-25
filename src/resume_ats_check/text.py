@@ -83,28 +83,39 @@ def contact_problems(text: str, *, expected_email: str | None = None) -> list[st
     return problems
 
 
-def tex_body_words(tex_source: str) -> set[str]:
-    """Words a reader should see, taken from the .tex body.
-
-    Everything before ``\\begin{document}`` is dropped, then ``\\href`` URLs (an
-    argument, never typeset), environment names, optional-argument groups, and
-    macro names. Skipping the macro strip makes ``\\hfill`` masquerade as "fill".
-    """
+def tex_body(tex_source: str) -> str:
+    """Everything after ``\\begin{document}``, comments removed."""
     _head, marker, body = tex_source.partition(r"\begin{document}")
     if not marker:
         # Splitting on a missing marker would silently hand back the preamble as
         # "words the reader should see", turning every package name into a phantom
         # missing word. Fail loudly rather than emit a nonsense coverage figure.
         raise ValueError(r"no \begin{document} in source — not a LaTeX document?")
-    body = re.sub(r"(?<!\\)%.*", " ", body)
+    return re.sub(r"(?<!\\)%.*", " ", body)
+
+
+def typeset_text(tex_source: str) -> str:
+    """The .tex body reduced to the characters a reader sees.
+
+    ``\\href`` URLs (an argument, never typeset), environment names,
+    optional-argument groups, and macro names are dropped. Skipping the macro strip
+    makes ``\\hfill`` masquerade as "fill".
+    """
+    body = tex_body(tex_source)
     body = re.sub(r"\\href\{[^}]*\}", " ", body)
     # Without these, \begin{center} and [leftmargin=0.15in, nosep] look like words.
     body = re.sub(r"\\(?:begin|end)\{[^}]*\}", " ", body)
     body = re.sub(r"\[[^\]]*\]", " ", body)
     body = re.sub(r"\\[a-zA-Z]+", " ", body)
-    body = re.sub(r"[{}\[\]$~\\]", " ", body)
+    # An empty group is a kerning break inside one word ("DevT{}rends"), not a space.
+    body = body.replace("{}", "")
+    return re.sub(r"[{}\[\]$~\\]", " ", body)
+
+
+def tex_body_words(tex_source: str) -> set[str]:
+    """Words a reader should see, taken from the .tex body (letters only)."""
     pattern = rf"[A-Za-z][A-Za-z.+#-]{{{_MIN_WORD_LEN - 1},}}"
-    return {w.lower().strip(".-") for w in re.findall(pattern, body)}
+    return {w.lower().strip(".-") for w in re.findall(pattern, typeset_text(tex_source))}
 
 
 def haystacks(text: str) -> tuple[str, str]:

@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Sequence
 
-from . import layout, text
+from . import glue, layout, text
 
 DEFAULT_MAX_PAGES = 1
 MIN_TEXT_CHARS = 1500
@@ -44,6 +44,13 @@ def verify_pdf(
             problems.append(
                 f"word coverage {coverage:.1%} (<{WORD_COVERAGE_FLOOR:.0%}); missing: {sample}"
             )
+        glued = glue.glued_words(tex_source, text.haystacks(extracted)[0])
+        if glued:
+            problems.append(
+                "words glued together in the text layer (an ATS reads each as one "
+                "token): " + ", ".join(glued[:8])
+            )
+        problems.extend(glue.source_problems(tex_source))
     absent = text.missing_keywords(extracted, required)
     if absent:
         problems.append("required keywords absent: " + ", ".join(absent))
